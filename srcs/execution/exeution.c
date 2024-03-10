@@ -126,42 +126,38 @@ void join_fd(int **fd_arr, int fd)
 
 
 
-void    execute_pipe_helper(t_plist *head, int in, int *fd, int read_prev_in)
+void    execute_pipe_helper(t_plist *head, int *pp, int *np)
 {
     int id;
 
     id = fork();
     if (id == 0)
     {
-        // if (fd[0] != 0)
-        //     close(fd[0]);
-        // dup2(read_prev_in, 0);
-        close(read_prev_in);
-        if (in != 0)
+        if (pp)
         {
-            dup2(in, 0);
-            close(in);
+            // close(pp[1]);
+            dup2(pp[0], 0);
+            close(pp[0]);
         }
-        if (fd[1] != 1)
+        if (np)
         {
-            dup2(fd[1], 1);
-            close(fd[1]);
+            close(np[0]); 
+            dup2(np[1], 1);
+            close(np[1]);
         }
         if (head->type == 'T')
             execute_tree(head->data);
         else if (head->type == 'C')
-        {
             execute_command(head->data, 0);
-        }
         else if (head->type == 'P')
             execute_pipe(head->data);
         exit(ptr.pstatus);
     }
-    close(fd[1]);
-    join_fd(&ptr.arr, fd[0]);
-    // int i = 0;
-    // while(ptrarr[0][i] != -1337)
-    //     printf("{%d}\n", fd[0]);
+    if (np)
+    {
+        close(np[1]);
+        join_fd(&ptr.arr, np[0]);
+    }
 }
 
 void	close_fd(int *fd_arr)
@@ -179,40 +175,32 @@ void	close_fd(int *fd_arr)
 
 void    execute_pipe(t_plist *head)
 {
-    int fd[2];
-    int read_prev_end;
+    t_fdbackup  backup;
+    int *next_pipe;
+    int *prev_pipe;
+    int in;
     
+    fdbackup(&backup);
+
+
     ptr.arr = malloc(sizeof(int) * 1);
     ptr.arr[0] = -1337;
     
-    int in;
-    t_fdbackup  backup;
+    next_pipe = malloc(sizeof(int) * 2);
+    prev_pipe = NULL;
 
-
-    fdbackup(&backup);
-
-    pipe(fd);
-    execute_pipe_helper(head, 0, fd, 0);
-    read_prev_end = fd[0];
-    fd[1] = 1;
-    execute_pipe_helper(head->next, fd[0], fd, read_prev_end);
-    // in = 0;
-    // while (head)
-    // {
-    //     if (head->next)
-    //         pipe(fd);
-    //     else
-    //         fd[1] = 1;
-    //     execute_pipe_helper(head, in, fd, read_prev_end);
-    //     in = fd[0];
-    //     head = head->next;
-    //     read_prev_end = fd[0];
-    // }
+    while (head)
+    {
+        if (head->next)
+            pipe(next_pipe);
+        else
+            next_pipe = NULL;
+        execute_pipe_helper(head, prev_pipe, next_pipe);
+        prev_pipe = next_pipe;
+        head = head->next;
+    }
     close_fd(ptr.arr);
-    // int i = 0;
-    // while(ptr.arr[i] != -1337)
-    // printf("%d\n", ptr.arr[0]);
-    while (wait(&ptr.pstatus) != -1);
+    while (wait(NULL) != -1);
     default_io(backup);
 }
 

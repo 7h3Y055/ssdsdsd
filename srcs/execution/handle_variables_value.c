@@ -221,7 +221,8 @@ char    *add_char_to_str(char *str, char c)
         s[1] = 0;
         return (ft_strdup(s));
     }
-    new_str = ft_strdup(str);
+    new_str = ft_calloc(sizeof(char) , (ft_strlen(str) + 2));
+    ft_strlcat(new_str, str, ft_strlen(str) + 1);
     len = ft_strlen(new_str);
     new_str[len] = c;
     new_str[len + 1] = 0;
