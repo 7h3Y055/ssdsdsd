@@ -126,20 +126,29 @@ void join_fd(int **fd_arr, int fd)
 
 
 
-void    execute_pipe_helper(t_plist *head, int *pp, int *np)
+void    execute_pipe_helper(t_plist *head, int in, int *np)
 {
     int id;
+
+    // // if (pp)
+    // printf("%d:", in);
+    // // else
+    //     // printf("0:");
+    // if (np)
+    //     printf(":%d\n", np[1]);
+    // else
+    //     printf(":1\n");
 
     id = fork();
     if (id == 0)
     {
-        if (pp)
+        if (in != 0)
         {
             // close(pp[1]);
-            dup2(pp[0], 0);
-            close(pp[0]);
+            dup2(in, 0);
+            close(in);
         }
-        if (np)
+        if (np[1] != 1)
         {
             close(np[0]); 
             dup2(np[1], 1);
@@ -177,7 +186,7 @@ void    execute_pipe(t_plist *head)
 {
     t_fdbackup  backup;
     int *next_pipe;
-    int *prev_pipe;
+    // int *prev_pipe;
     int in;
     
     fdbackup(&backup);
@@ -187,16 +196,23 @@ void    execute_pipe(t_plist *head)
     ptr.arr[0] = -1337;
     
     next_pipe = malloc(sizeof(int) * 2);
-    prev_pipe = NULL;
+    // prev_pipe = NULL;
 
+    in = 0;
     while (head)
     {
         if (head->next)
+        {
             pipe(next_pipe);
+            // printf("%d==%d\n", next_pipe[0], next_pipe[1]);
+        }
         else
-            next_pipe = NULL;
-        execute_pipe_helper(head, prev_pipe, next_pipe);
-        prev_pipe = next_pipe;
+        {
+            next_pipe[1] = 1;
+        }
+        execute_pipe_helper(head, in, next_pipe);
+        in = next_pipe[0];
+        // prev_pipe = next_pipe;
         head = head->next;
     }
     close_fd(ptr.arr);
